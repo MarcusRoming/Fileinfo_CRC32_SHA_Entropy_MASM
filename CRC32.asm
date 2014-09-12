@@ -54,7 +54,7 @@
 		Conversion			DB 11 DUP (0)
 		CR_LF				DB 10,13,0  
   		TabSign           	DB 9,0 
-		FrequencyTable	  	DD 256 DUP (0)			;Durch die DWord-Tabelle ergibt sich eine Maximale Dateigröße von 4GByte
+		FrequencyTable	  	DD 256 DUP (0)			;Currently Max 4GByte
 		FileLenAsc        	DB 20 DUP (0)
 		Entropy           	DD 00h
 		Invert            	DD -1.00
