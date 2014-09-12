@@ -131,7 +131,7 @@ Weiter1:
 		jne  Weiter2
 
 		invoke StdOut,ADDR CR_LF
-		print "Fehler: Aus Datei konnte nicht gelesen werden!"
+		print "Error: Unable to read file!"
 		invoke StdOut,ADDR CR_LF
 		invoke CloseHandle,hFileCRC
 		jmp  Ende
@@ -141,15 +141,13 @@ Weiter2:									;File successfully opened!
 		jne  Weiter3
 
 		invoke StdOut,ADDR CR_LF
-		print "Fehler: 0-Byte Datei (CRC32=0) oder Leseproblem!"
+		print "Error: 0-Byte File (CRC32=0) read error!"
 		invoke StdOut,ADDR CR_LF
 		jmp  Ende
 
 Weiter3:
 
-		;Hier der CRC32 Code
 		;Create CRC32 Table
-
 		call TableDance
 
 ;---------------------------------------------------------------CRC32 calculation---------------------------------------------------------------------
@@ -158,9 +156,6 @@ Weiter3:
 CycleCRC:
 		pushad
 		invoke CryptHashData,hHash,ADDR ReadBuffer,BytesRead, 0	
-		
-		;cmp	 eax,0  ;ACHTUNG!
-  		;je   Ende   ;ACHTUNG!
   		
   		popad
   		
@@ -198,7 +193,7 @@ CycleCRC:
 jne  CycleCRC       
 
 		invoke CloseHandle,hFileCRC
-		not  CRC32Result								;Important! Der ist verdammt wichtig!!!! Erst ganz am Schluss!
+		not  CRC32Result								;Important! 
 		invoke dw2hex,CRC32Result,ADDR Conversion
 		invoke StdOut,ADDR CR_LF
 		print "CRC32 (HEX)  : "
@@ -213,6 +208,8 @@ jne  CycleCRC
   		je   Ende
   		
  ;------------------------------------------------------------------Convert Hash into string----------------------------------------------------------
+ ;See: http://www.masmforum.com/board/index.php?PHPSESSID=786dd40408172108b65a5a36b09c88c0&action=printpage;topic=4322.0
+ ;----------------------------------------------------------------------------------------------------------------------------------------------------
  
 		;initialize array
 		mov DWORD PTR [@rgbDigits],"3210"
@@ -375,13 +372,13 @@ IsZero:
 
 Fehler:
 		invoke StdOut,ADDR CR_LF
-		print "Fehler: Keine Kommandozeile, /? oder help fuer Hilfe!"
+		print "Error: Missing commandline, /? or help for help!"
 		invoke StdOut,ADDR CR_LF
 	
 Ende:	invoke  ExitProcess,eax
 
 
-;---------------------------------------Tabellenprozedur--------------------------------------------------------------
+;---------------------------------------Procedure for Table creation--------------------------------------------------------------
 
 TableDance PROC
 		mov  ecx,256
@@ -392,13 +389,13 @@ Loop1:
 	InnerLoop:
 			mov  eax,[DWRC]
 			mov  [TMP],eax
-			and  [TMP],01h			;DWRC überprüfen OHNE es dabei zu verändern!!
-			jz  ElseMarke			;Stimmt das?? Ja!!! jz!
+			and  [TMP],01h			;CHK DWRC without modifiaction
+			jz  ElseMarke			;jz!
 			mov  eax,[DWRC]
 			and  eax,0FFFFFFFEh
 			sar  eax,1
 			and  eax,07FFFFFFFh
-			xor  eax,0EDB88320h		;Polynom, Standardpoly f. CRC32
+			xor  eax,0EDB88320h		;Polynome, Standard for CRC32
 			mov  [DWRC],eax
 			jmp  NotElse
 			ElseMarke:
@@ -412,7 +409,7 @@ Loop1:
 		pop  ecx
 		mov  esi,ecx
 		mov  eax,[DWRC]
-		mov  [OFFSET CRC32Table + ESI*4],eax		;Tabelle mit CRC32-Werten aller möglichen 256 Byte-Werte
+		mov  [OFFSET CRC32Table + ESI*4],eax		;Table with CRC32-Values of all possible 256 Values of a Byte
 Loop Loop1
 	ret
 TableDance ENDP
