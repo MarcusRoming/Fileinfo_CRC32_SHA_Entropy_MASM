@@ -21,8 +21,12 @@
     ALG_SID_SHA_256     equ 12
 
     PROV_RSA_FULL       equ 1
+    PROV_RSA_AES        equ 24
     CALG_MD5            equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_MD5)
-    CALG_SHA1           equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA)  
+    CALG_SHA1           equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA) 
+	CALG_SHA_256        equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA_256)  
+    
+    HashConvert         PROTO  BufLengthP:DWORD
     
 
 
@@ -41,11 +45,12 @@
         hDLLKernel32        DD ?
         hDEP                DD ?
         hProv               DD ?
+        hProv256            DD ?
         hHash               DD ?
-        HashBuffer          DB 64 DUP (?)
-        HashBufferAsc       DB 64 DUP (?)
+        hHash256            DD ?
+        HashBuffer          DB 128 DUP (?)
+        HashBufferAsc       DB 128 DUP (?)    
         @rgbDigits          DB 16 DUP (?)
-        @rgbHash            DB 64 DUP (?)
         
         
 
@@ -68,7 +73,8 @@
         SubString           DB "/f",0
         UserDLL             DB "kernel32",0
         strDEP              DB "SetProcessDEPPolicy",0
-        BufLength           DD 41
+        BufLengthSHA1       DD 41
+        BufLengthSHA256     DD 64
     
 .code
 start:  
@@ -110,17 +116,21 @@ Help:
 
 NoHelp:
 
-        invoke CryptAcquireContext,ADDR hProv, 0, 0, 1, 0
-        
+        invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0       	;SHA256
+        invoke CryptCreateHash, hProv256, CALG_SHA_256, 0, 0, ADDR hHash256
+    
+        invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0    		;SHA1
         invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHash
-
+		    
+        ;cmp  eax,0
+        ;je   Ende
 
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Eigentliche Datei öffnen!
         cmp  eax,-1
         jne  Weiter1
 
         invoke StdOut,ADDR CR_LF
-        print "Fehler: Datei konnte nicht geoeffnet werden!"
+        print "Error: Unable to open file!"
         invoke StdOut,ADDR CR_LF
         jmp  Ende
 
@@ -156,6 +166,7 @@ Weiter3:
 CycleCRC:
         pushad
         invoke CryptHashData,hHash,ADDR ReadBuffer,BytesRead, 0 
+        invoke CryptHashData,hHash256,ADDR ReadBuffer,BytesRead, 0 
         
         popad
         
@@ -201,51 +212,34 @@ jne  CycleCRC
         invoke StdOut,ADDR Conversion
         invoke StdOut,ADDR CR_LF
     
-        print "SHA 1 (HEX)  : "
-        invoke StdOut,ADDR TabSign
-        invoke CryptGetHashParam, hHash,HP_HASHVAL, ADDR HashBuffer, ADDR BufLength, 0
-                cmp  eax,0
-        je   Ende
+        invoke CryptGetHashParam, hHash,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1
         
- ;------------------------------------------------------------------Convert Hash into string----------------------------------------------------------
- ;See: http://www.masmforum.com/board/index.php?PHPSESSID=786dd40408172108b65a5a36b09c88c0&action=printpage;topic=4322.0
- ;----------------------------------------------------------------------------------------------------------------------------------------------------
- 
         ;initialize array
         mov DWORD PTR [@rgbDigits],"3210"
         mov DWORD PTR [@rgbDigits+4],"7654"
         mov DWORD PTR [@rgbDigits+8],"ba98"
         mov DWORD PTR [@rgbDigits+12],"fedc" 
- 
-        ;convert the hash to an SHA string using a lookup table
-        xor eax,eax
-        xor edx,edx
-        mov ebx,OFFSET HashBufferAsc
-        lea edi,HashBuffer
-        mov ecx,[BufLength]
-        lea esi,@rgbDigits
-Looping:
-        mov al,[edi]
-        shr al,4
-        mov dl,[esi+eax]
-        mov [ebx],dl
-        inc ebx
-        mov al,[edi]
-        and al,0fh
-        mov dl,[esi+eax]
-        mov [ebx],dl
-        inc edi
-        inc ebx
-        dec ecx
-jnz Looping
-        mov ax,0
-        mov [ebx],ax
         
+        print "SHA 1 (HEX)  : "
+        invoke StdOut,ADDR TabSign
+
+        invoke HashConvert,BufLengthSHA1
         invoke StdOut,ADDR HashBufferAsc
         invoke StdOut,ADDR CR_LF
         
+        invoke CryptGetHashParam, hHash256,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA256, 0     ;Create SHA256
+        
+        print "SHA256(HEX)  : "
+        invoke StdOut,ADDR TabSign
+
+        invoke HashConvert,BufLengthSHA256
+        invoke StdOut,ADDR HashBufferAsc
+        
         invoke CryptDestroyHash,hHash
         invoke CryptReleaseContext,hProv, NULL  
+
+        invoke CryptDestroyHash,hHash256
+        invoke CryptReleaseContext,hProv256, NULL         
     
 ; -----------------------------------------------------Determine and print file length----------------------------------------------------------------
         invoke filesize,ADDR ItemBuffer
@@ -413,5 +407,42 @@ Loop1:
 Loop Loop1
     ret
 TableDance ENDP
+
+
+ ;------------------------------------------------------------------Convert Hash into string----------------------------------------------------------
+ ;See: http://www.masmforum.com/board/index.php?PHPSESSID=786dd40408172108b65a5a36b09c88c0&action=printpage;topic=4322.0
+ ;----------------------------------------------------------------------------------------------------------------------------------------------------
+ 
+HashConvert  PROC BufLengthP:DWORD 
+
+        pushad
+        ;convert the hash to an SHA string using a lookup table
+        xor eax,eax
+        xor edx,edx
+        mov ebx,OFFSET HashBufferAsc
+        lea edi,HashBuffer
+        mov ecx,[BufLengthP]
+        lea esi,@rgbDigits
+LoopingP:
+        mov al,[edi]
+        shr al,4
+        mov dl,[esi+eax]
+        mov [ebx],dl
+        inc ebx
+        mov al,[edi]
+        and al,0fh
+        mov dl,[esi+eax]
+        mov [ebx],dl
+        inc edi
+        inc ebx
+        dec ecx
+jnz LoopingP
+        mov ax,0
+        mov [ebx],ax
+		popad
+		
+        ret
+
+HashConvert  ENDP        
 
 END start
