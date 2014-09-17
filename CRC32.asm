@@ -19,6 +19,7 @@
     ALG_SID_MD5         equ 3
     ALG_SID_SHA         equ 4
     ALG_SID_SHA_256     equ 12
+    ALLOC_MEM			equ 100000h					;100000h = 1MByte, unfortunately more memory does not increase speed!
 
     PROV_RSA_FULL       equ 1
     PROV_RSA_AES        equ 24
@@ -32,7 +33,6 @@
 
 .data?
         ItemBuffer          DB 128 DUP (?)          ;Buffer for Commadline Args 
-        ReadBuffer          DB 4096 DUP (?)         ;Buffer for file read operations
         DWRC                DD ?
         TMP                 DD ?
         CRC32Table          DB 2048 DUP (?)
@@ -51,6 +51,10 @@
         HashBuffer          DB 128 DUP (?)
         HashBufferAsc       DB 128 DUP (?)    
         @rgbDigits          DB 16 DUP (?)
+        hHeap				DD ?
+        hBlock				DD ?
+        lpFileBuf			DD ?
+        
         
         
 
@@ -75,15 +79,17 @@
         strDEP              DB "SetProcessDEPPolicy",0
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
+
+;-----------------------------------------------------------------------------------------------------------------------------------------------------
     
 .code
 start:  
-        invoke  LoadLibrary, ADDR UserDLL
+        invoke LoadLibrary, ADDR UserDLL
         cmp  eax,0
         je   NoDEP
         mov  hDLLKernel32,eax
 
-        invoke  GetProcAddress,hDLLKernel32,ADDR strDEP     ;Activate DEP just to show...
+        invoke GetProcAddress,hDLLKernel32,ADDR strDEP     ;Activate DEP just to show...
         cmp  eax,0
         je   NoDEP
         mov  hDEP,eax
@@ -93,7 +99,7 @@ start:
   
 NoDEP:  
   
-        invoke  GetCL,1,ADDR ItemBuffer                         
+        invoke GetCL,1,ADDR ItemBuffer                         
         cmp  eax,1
         jne  Fehler
         
@@ -104,7 +110,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Windows32 Commandline. Ver. 1.00"
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Windows32 Commandline. Ver. 1.01"
         invoke StdOut,ADDR CR_LF
         print "Syntax: CRC32 filename.ext [/f]"
         invoke StdOut,ADDR CR_LF
@@ -122,10 +128,7 @@ NoHelp:
         invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0    		;SHA1
         invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHash
 		    
-        ;cmp  eax,0
-        ;je   Ende
-
-        invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Eigentliche Datei öffnen!
+        invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
         cmp  eax,-1
         jne  Weiter1
 
@@ -136,7 +139,30 @@ NoHelp:
 
 Weiter1:
         mov  hFileCRC,eax
-        invoke ReadFile,hFileCRC,ADDR ReadBuffer,4096,ADDR BytesRead,NULL
+        
+        ;Allocating memory, using a DB 4096 DUP(?) would be as fast but to show the principle
+        ;See: http://masm32.com/board/index.php?topic=1311.0
+        
+        invoke GetProcessHeap
+        mov  hHeap,eax
+        
+        mov  ecx,ALLOC_MEM+10h
+        invoke HeapAlloc,hHeap,NULL,ecx
+        or   eax,eax
+        jnz  AllOk
+        
+        invoke StdOut,ADDR CR_LF
+        print "Error: Allocate Memory!"
+        invoke StdOut,ADDR CR_LF
+		jmp  Ende
+
+AllOk:  mov  hBlock,eax
+        add  eax,15
+        and  al,-16
+        mov  lpFileBuf,eax
+        ;Allocating memory done!
+              
+        invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL
         cmp  eax,0
         jne  Weiter2
 
@@ -165,18 +191,19 @@ Weiter3:
         mov  ecx,[BytesRead]
 CycleCRC:
         pushad
-        invoke CryptHashData,hHash,ADDR ReadBuffer,BytesRead, 0 
-        invoke CryptHashData,hHash256,ADDR ReadBuffer,BytesRead, 0 
+        invoke CryptHashData,hHash,lpFileBuf,BytesRead, 0 
+        invoke CryptHashData,hHash256,lpFileBuf,BytesRead, 0 
         
         popad
         
-        xor  esi,esi
+        mov  esi,lpFileBuf
 
         CRCLoop:            
             push [CRC32Result]
             and  [CRC32Result],0FFh
             xor  eax,eax
-            mov  al,byte ptr [ReadBuffer+esi]
+            
+			mov  al,byte ptr [esi]
             pushad
             mov  ebx,OFFSET FrequencyTable
             shl  eax,2
@@ -198,9 +225,10 @@ CycleCRC:
         Loop CRCLoop
     
         
-        invoke ReadFile,hFileCRC,ADDR ReadBuffer,4096,ADDR BytesRead,NULL   ;More data available?
+        invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?
         mov  ecx,[BytesRead]
         cmp  ecx,0
+        
 jne  CycleCRC       
 
         invoke CloseHandle,hFileCRC
