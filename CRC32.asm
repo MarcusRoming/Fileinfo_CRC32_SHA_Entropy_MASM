@@ -19,15 +19,17 @@
     ALG_SID_MD5         equ 3
     ALG_SID_SHA         equ 4
     ALG_SID_SHA_256     equ 12
-    ALLOC_MEM			equ 100000h					;100000h = 1MByte, unfortunately more memory does not increase speed!
+    ALLOC_MEM           equ 250000h                 ;100000h = 1MByte, unfortunately more memory does not increase speed!
 
     PROV_RSA_FULL       equ 1
     PROV_RSA_AES        equ 24
     CALG_MD5            equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_MD5)
     CALG_SHA1           equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA) 
-	CALG_SHA_256        equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA_256)  
+    CALG_SHA_256        equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA_256)  
     
     HashConvert         PROTO  BufLengthP:DWORD
+    ThreadProc1         PROTO  ;For SHA1
+    ThreadProc2         PROTO  ;For SHA256
     
 
 
@@ -51,9 +53,15 @@
         HashBuffer          DB 128 DUP (?)
         HashBufferAsc       DB 128 DUP (?)    
         @rgbDigits          DB 16 DUP (?)
-        hHeap				DD ?
-        hBlock				DD ?
-        lpFileBuf			DD ?
+        hHeap               DD ?
+        hBlock              DD ?
+        lpFileBuf           DD ?
+        ThreadID1           DD ?
+        ThreadID2           DD ?
+        ThreadParam1        DD ?
+        ThreadParam2        DD ?
+        hThread1            DD ?
+        hThread2            DD ?
         
         
         
@@ -110,7 +118,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Windows32 Commandline. Ver. 1.01"
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Windows32 Commandline. Ver. 1.05"
         invoke StdOut,ADDR CR_LF
         print "Syntax: CRC32 filename.ext [/f]"
         invoke StdOut,ADDR CR_LF
@@ -122,12 +130,12 @@ Help:
 
 NoHelp:
 
-        invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0       	;SHA256
+        invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0         ;SHA256
         invoke CryptCreateHash, hProv256, CALG_SHA_256, 0, 0, ADDR hHash256
     
-        invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0    		;SHA1
+        invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0           ;SHA1
         invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHash
-		    
+            
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
         cmp  eax,-1
         jne  Weiter1
@@ -154,7 +162,7 @@ Weiter1:
         invoke StdOut,ADDR CR_LF
         print "Error: Allocate Memory!"
         invoke StdOut,ADDR CR_LF
-		jmp  Ende
+        jmp  Ende
 
 AllOk:  mov  hBlock,eax
         add  eax,15
@@ -183,6 +191,8 @@ Weiter2:                                    ;File successfully opened!
 
 Weiter3:
 
+
+
         ;Create CRC32 Table
         call TableDance
 
@@ -190,9 +200,17 @@ Weiter3:
 
         mov  ecx,[BytesRead]
 CycleCRC:
+         
         pushad
-        invoke CryptHashData,hHash,lpFileBuf,BytesRead, 0 
-        invoke CryptHashData,hHash256,lpFileBuf,BytesRead, 0 
+
+        invoke  CreateThread, NULL, 0, ADDR ThreadProc1, ADDR ThreadParam1, 0, ADDR ThreadID1
+        mov  hThread1,eax
+        cmp  eax,0
+        je   Fehler
+        invoke  CreateThread, NULL, 0, ADDR ThreadProc2, ADDR ThreadParam2, 0, ADDR ThreadID2 
+        mov  hThread2,eax
+        cmp  eax,0
+        je   Fehler
         
         popad
         
@@ -203,7 +221,7 @@ CycleCRC:
             and  [CRC32Result],0FFh
             xor  eax,eax
             
-			mov  al,byte ptr [esi]
+            mov  al,byte ptr [esi]
             pushad
             mov  ebx,OFFSET FrequencyTable
             shl  eax,2
@@ -225,7 +243,16 @@ CycleCRC:
         Loop CRCLoop
     
         
-        invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?
+        invoke WaitForSingleObject,hThread1,30000
+        cmp  eax,WAIT_FAILED
+        je   Ende
+        invoke WaitForSingleObject,hThread2,30000 
+        cmp  eax,WAIT_FAILED
+        je   Ende
+        
+        invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?     
+        
+        
         mov  ecx,[BytesRead]
         cmp  ecx,0
         
@@ -390,7 +417,13 @@ IsZero:
         invoke StdOut,ADDR CR_LF
         
         
-        jmp Ende            
+        jmp Ende  
+        
+ThreadErr:  
+        invoke StdOut,ADDR CR_LF
+        print "Error: Thread error!"
+        invoke StdOut,ADDR CR_LF      
+        jmp  Ende          
 
 Fehler:
         invoke StdOut,ADDR CR_LF
@@ -467,10 +500,25 @@ LoopingP:
 jnz LoopingP
         mov ax,0
         mov [ebx],ax
-		popad
-		
+        popad
+        
         ret
 
 HashConvert  ENDP        
+
+ThreadProc1  PROC
+
+        invoke CryptHashData,hHash,lpFileBuf,BytesRead, 0
+        ret
+             
+ThreadProc1  ENDP  
+
+ThreadProc2  PROC
+
+        invoke CryptHashData,hHash256,lpFileBuf,BytesRead, 0
+        ret
+             
+ThreadProc2  ENDP                
+
 
 END start
