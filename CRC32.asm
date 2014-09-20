@@ -19,7 +19,7 @@
     ALG_SID_MD5         equ 3
     ALG_SID_SHA         equ 4
     ALG_SID_SHA_256     equ 12
-    ALLOC_MEM           equ 250000h                 ;100000h = 1MByte, unfortunately more memory does not increase speed!
+    ALLOC_MEM           equ 250000h                 ;100000h = 1MByte
 
     PROV_RSA_FULL       equ 1
     PROV_RSA_AES        equ 24
@@ -71,8 +71,8 @@
         Conversion          DB 11 DUP (0)
         CR_LF               DB 10,13,0  
         TabSign             DB 9,0 
-        FrequencyTable      DD 256 DUP (0)          ;Currently Max 4GByte
-        FileLenAsc          DB 20 DUP (0)
+        FrequencyTable      DD 256 DUP (0)          ;Currently Max 4GByte but due to DD
+        FileLenAsc          DB 32 DUP (0)
         Entropy             DD 00h
         Invert              DD -1.00
         Base                DD 1.00
@@ -148,7 +148,6 @@ NoHelp:
 Weiter1:
         mov  hFileCRC,eax
         
-        ;Allocating memory, using a DB 4096 DUP(?) would be as fast but to show the principle
         ;See: http://masm32.com/board/index.php?topic=1311.0
         
         invoke GetProcessHeap
@@ -211,7 +210,7 @@ CycleCRC:
         mov  hThread2,eax
         cmp  eax,0
         je   ThreadErr
-        
+        ;Now both threads work in parallel
         popad
         
         mov  esi,lpFileBuf
@@ -269,7 +268,7 @@ jne  CycleCRC
     
         invoke CryptGetHashParam, hHash,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1
         
-        ;initialize array
+        ;initialize array for conversion digits
         mov DWORD PTR [@rgbDigits],"3210"
         mov DWORD PTR [@rgbDigits+4],"7654"
         mov DWORD PTR [@rgbDigits+8],"ba98"
@@ -307,7 +306,7 @@ jne  CycleCRC
   
         print "File length  : "
         invoke StdOut,ADDR TabSign
-        invoke dwtoa,FileLen,ADDR FileLenAsc
+        invoke udw2str,FileLen,ADDR FileLenAsc       ;udw2str = unsigned dword to string
         invoke StdOut,ADDR FileLenAsc
         print " Byte"
         invoke StdOut,ADDR CR_LF
@@ -346,7 +345,7 @@ FTable:
         push ecx
         mov  edx,dword ptr [FrequencyTable+ebx]
         mov  [FreqVal],edx
-        invoke dwtoa,FreqVal,ADDR FreqAsc 
+        invoke udw2str,FreqVal,ADDR FreqAsc 
         invoke StdOut,ADDR FreqAsc
         invoke StdOut,ADDR TabSign
         add  ebx,4
@@ -413,7 +412,7 @@ IsZero:
         
         print "Max compress.: "                                 ;Show theoretical maximum compression (Entropy*FileLength/8)
         invoke StdOut,ADDR TabSign
-        invoke dwtoa,DDMaxCompression,ADDR MaxCompressionAsc
+        invoke udw2str,DDMaxCompression,ADDR MaxCompressionAsc
         invoke StdOut,ADDR MaxCompressionAsc
         print " Byte"
         invoke StdOut,ADDR CR_LF
