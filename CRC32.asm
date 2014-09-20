@@ -203,14 +203,14 @@ CycleCRC:
          
         pushad
 
-        invoke  CreateThread, NULL, 0, ADDR ThreadProc1, ADDR ThreadParam1, 0, ADDR ThreadID1
+        invoke  CreateThread, NULL, 0, ADDR ThreadProc1, ADDR ThreadParam1, 0, ADDR ThreadID1  ;Start Thread that calculates SHA1
         mov  hThread1,eax
         cmp  eax,0
-        je   Fehler
-        invoke  CreateThread, NULL, 0, ADDR ThreadProc2, ADDR ThreadParam2, 0, ADDR ThreadID2 
+        je   ThreadErr
+        invoke  CreateThread, NULL, 0, ADDR ThreadProc2, ADDR ThreadParam2, 0, ADDR ThreadID2  ;Start Thread that calculates SHA256
         mov  hThread2,eax
         cmp  eax,0
-        je   Fehler
+        je   ThreadErr
         
         popad
         
@@ -243,12 +243,12 @@ CycleCRC:
         Loop CRCLoop
     
         
-        invoke WaitForSingleObject,hThread1,30000
+        invoke WaitForSingleObject,hThread1,30000      ;Wait for Thread-Results
         cmp  eax,WAIT_FAILED
-        je   Ende
+        je   ThreadErr
         invoke WaitForSingleObject,hThread2,30000 
         cmp  eax,WAIT_FAILED
-        je   Ende
+        je   ThreadErr
         
         invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?     
         
@@ -294,7 +294,9 @@ jne  CycleCRC
         invoke CryptReleaseContext,hProv, NULL  
 
         invoke CryptDestroyHash,hHash256
-        invoke CryptReleaseContext,hProv256, NULL         
+        invoke CryptReleaseContext,hProv256, NULL   
+        
+        invoke HeapFree,hHeap,NULL,hBlock           ;Free allocated memory!   
     
 ; -----------------------------------------------------Determine and print file length----------------------------------------------------------------
         invoke filesize,ADDR ItemBuffer
