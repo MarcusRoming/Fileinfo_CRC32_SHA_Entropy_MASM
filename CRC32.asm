@@ -345,7 +345,7 @@ FTable:
         push ecx
         mov  edx,dword ptr [FrequencyTable+ebx]
         mov  [FreqVal],edx
-        invoke udw2str,FreqVal,ADDR FreqAsc 
+        invoke dwtoa,FreqVal,ADDR FreqAsc 
         invoke StdOut,ADDR FreqAsc
         invoke StdOut,ADDR TabSign
         add  ebx,4
