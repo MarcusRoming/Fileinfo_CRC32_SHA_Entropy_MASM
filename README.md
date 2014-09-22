@@ -19,6 +19,16 @@ Purpose:
   - Frequency table (use /f)
   - Type "CRC32 /?" for help.
   
+Syntax:
+  - crc32 "Test File.ext" /f
+  -> Will analyze and hash the file >>Test File.ext<< and give out the frequency table.
+  - crc32 TestFile.ext /f 
+  -> Quotes are only needed for filenames with space characters. 
+  - crc32 TestFile.ext
+  -> Analyze the file without showing the frequency table.
+  --> TIP: Use the Tab-Key to complete long filenames! You can press it several times if needed.
+   
+  
 Info:  
   - Written in Assembler 32 Bit, MASM
   
