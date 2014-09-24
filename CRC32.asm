@@ -61,7 +61,7 @@
         ThreadParam1        DD ?
         ThreadParam2        DD ?
         hThread1            DD ?
-        hThread2            DD ?
+        hThread2            DD ?      
         
         
         
@@ -87,6 +87,7 @@
         strDEP              DB "SetProcessDEPPolicy",0
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
+        HighOrderSize       DD 0
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -109,7 +110,7 @@ NoDEP:
   
         invoke GetCL,1,ADDR ItemBuffer                         
         cmp  eax,1
-        jne  Fehler
+        jne  NoCmdLn
         
         mov  eax,dword ptr [ItemBuffer]
         cmp  eax,"pleh"                                     ;crc32 help or...
@@ -138,14 +139,14 @@ NoHelp:
             
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
         cmp  eax,-1
-        jne  Weiter1
+        jne  NoErr1
 
         invoke StdOut,ADDR CR_LF
         print "Error: Unable to open file!"
         invoke StdOut,ADDR CR_LF
         jmp  Ende
 
-Weiter1:
+NoErr1:
         mov  hFileCRC,eax
         
         ;See: http://masm32.com/board/index.php?topic=1311.0
@@ -159,7 +160,7 @@ Weiter1:
         jnz  AllOk
         
         invoke StdOut,ADDR CR_LF
-        print "Error: Allocate Memory!"
+        print "Error: Unable to allocate Memory!"
         invoke StdOut,ADDR CR_LF
         jmp  Ende
 
@@ -171,29 +172,29 @@ AllOk:  mov  hBlock,eax
               
         invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL
         cmp  eax,0
-        jne  Weiter2
+        jne  NoErr2
 
         invoke StdOut,ADDR CR_LF
         print "Error: Unable to read file!"
         invoke StdOut,ADDR CR_LF
         invoke CloseHandle,hFileCRC
         jmp  Ende
-Weiter2:                                    ;File successfully opened!
+NoErr2:                                    ;File successfully opened!
 
         cmp  [BytesRead],0
-        jne  Weiter3
+        jne  NoErr3
 
         invoke StdOut,ADDR CR_LF
         print "Error: 0-Byte File (CRC32=0) read error!"
         invoke StdOut,ADDR CR_LF
         jmp  Ende
 
-Weiter3:
+NoErr3:
 
 
 
         ;Create CRC32 Table
-        call TableDance
+        call CreateCRCTable
 
 ;---------------------------------------------------------------CRC32 calculation---------------------------------------------------------------------
 
@@ -257,7 +258,6 @@ CycleCRC:
         
 jne  CycleCRC       
 
-        invoke CloseHandle,hFileCRC
         not  CRC32Result                                ;Important! 
         invoke dw2hex,CRC32Result,ADDR Conversion
         invoke StdOut,ADDR CR_LF
@@ -298,10 +298,20 @@ jne  CycleCRC
         invoke HeapFree,hHeap,NULL,hBlock           ;Free allocated memory!   
     
 ; -----------------------------------------------------Determine and print file length----------------------------------------------------------------
-        invoke filesize,ADDR ItemBuffer
-        cmp  eax,-1
-        je   Fehler
-        mov  FileLen,eax
+        invoke GetFileSize,hFileCRC,ADDR HighOrderSize            ;Limits filesize and entropy calculation, we do not get the high dword
+        mov  FileLen,eax                                          ;If value is wrong we will not use it anyway
+        cmp  [FileLen],7FFFFFFFh                                  ;01111111111111111111111111111111b  > 2 GByte?                               
+        ja   TooLarge
+        cmp  [HighOrderSize],0
+        je   NoErr4
+        
+TooLarge:
+        invoke StdOut,ADDR CR_LF
+        print "Error : File too big for file size and entropy. Will skip calculations!"
+        invoke StdOut,ADDR CR_LF
+        jmp  Ende
+
+NoErr4:        
         push FileLen
   
         print "File length  : "
@@ -363,8 +373,7 @@ FreqOk:
         xor  ebx,ebx  
 LoopDiv:
         fild [FrequencyTable+ebx]
-        fild [FileLen]
-        fdiv
+        fidiv [FileLen]
         fstp [FrequencyTable+ebx]      ;Save as floating point value!
         wait
         add  ebx,4
@@ -375,12 +384,12 @@ LoopDiv:
         mov  ecx,256
         xor  ebx,ebx  
 LoopEnt:
-        cmp  [FrequencyTable+ebx],0
+        cmp  dword ptr [FrequencyTable+ebx],0
         je   IsZero
-        fld  [Base]                   ;Base 2 logarithm, not e!!
-        fld  [FrequencyTable+ebx]     ;Load as floating point value!
-        fyl2x                         ;Log base 2
-        fld  [FrequencyTable+ebx]     ;Load as floating point value!
+        fld  [Base]                              ;Base 2 logarithm, not e!!
+        fld  dword ptr [FrequencyTable+ebx]       ;Load as floating point value!
+        fyl2x                                    ;Log base 2
+        fld  dword ptr [FrequencyTable+ebx]       ;Load as floating point value!
         fmul
         fld  [Entropy]
         fadd
@@ -426,17 +435,18 @@ ThreadErr:
         invoke StdOut,ADDR CR_LF      
         jmp  Ende          
 
-Fehler:
+NoCmdLn:
         invoke StdOut,ADDR CR_LF
         print "Error: Missing commandline, /? or help for help!"
         invoke StdOut,ADDR CR_LF
     
-Ende:   invoke  ExitProcess,eax
+Ende:   invoke CloseHandle,hFileCRC
+        invoke  ExitProcess,eax
 
 
 ;---------------------------------------Procedure for Table creation--------------------------------------------------------------
 
-TableDance PROC
+CreateCRCTable PROC
         mov  ecx,256
 Loop1:  
         mov  [DWRC],ecx
@@ -468,7 +478,7 @@ Loop1:
         mov  [OFFSET CRC32Table + ESI*4],eax        ;Table with CRC32-Values of all possible 256 Values of a Byte
 Loop Loop1
     ret
-TableDance ENDP
+CreateCRCTable ENDP
 
 
  ;------------------------------------------------------------------Convert Hash into string----------------------------------------------------------
