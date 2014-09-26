@@ -99,7 +99,7 @@ start:
         mov  hDLLKernel32,eax
 
         invoke GetProcAddress,hDLLKernel32,ADDR strDEP     ;Activate DEP just to show...
-        cmp  eax,0
+        cmp  eax,0                                         ;and maybe also needed (see below)
         je   NoDEP
         mov  hDEP,eax
   
@@ -108,7 +108,7 @@ start:
   
 NoDEP:  
   
-        invoke GetCL,1,ADDR ItemBuffer                         
+        invoke getcl_ex,1,ADDR ItemBuffer                     ;GetCL has problems with Buffer-overflows... thus getcl_ex!                        
         cmp  eax,1
         jne  NoCmdLn
         
@@ -343,7 +343,7 @@ NoErr4:
 
         print "Freq. table  : "
 
-        invoke  GetCL,2,ADDR ItemBuffer
+        invoke  getcl_ex,2,ADDR ItemBuffer
         mov  eax,dword ptr [ItemBuffer]
         cmp  ax,"f/"    
         jne  NoTableOut
