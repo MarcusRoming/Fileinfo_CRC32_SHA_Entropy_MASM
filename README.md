@@ -1,7 +1,7 @@
 Fileinfo_CRC32_SHA_Entropy_MASM
 ===============================
 
-First project
+First project on GitHub, use at your own risk!
 
 New:
   - New Hash (SHA 256)
