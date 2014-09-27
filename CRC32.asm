@@ -20,6 +20,7 @@
     ALG_SID_SHA         equ 4
     ALG_SID_SHA_256     equ 12
     ALLOC_MEM           equ 250000h                 ;100000h = 1MByte
+    LenBuffer           equ 128         
 
     PROV_RSA_FULL       equ 1
     PROV_RSA_AES        equ 24
@@ -34,60 +35,57 @@
 
 
 .data?
-        ItemBuffer          DB 128 DUP (?)          ;Buffer for Commadline Args 
-        DWRC                DD ?
-        TMP                 DD ?
-        CRC32Table          DB 2048 DUP (?)
-        hFileCRC            DD ?
+        @rgbDigits          DB 16 DUP (?)
         BytesRead           DD ?
+        Conversion          DB 11 DUP (?)
+        CRC32Table          DB 2048 DUP (?)
+        DWRC                DD ?
+        EntropyAsc          DB 20 DUP (?)
         FileLen             DD ?
-        InBuffer            DB 128 DUP (?)
+        FileLenAsc          DB 32 DUP (?)
+        FreqAsc             DB 20 DUP (?)     
+        FrequencyTable      DD 256 DUP (?)     
         FreqVal             DD ?
-        MaxCompressionAsc   DB 20 DUP (?)
-        hDLLKernel32        DD ?
-        hDEP                DD ?
-        hProv               DD ?
-        hProv256            DD ?
-        hHash               DD ?
-        hHash256            DD ?
         HashBuffer          DB 128 DUP (?)
         HashBufferAsc       DB 128 DUP (?)    
-        @rgbDigits          DB 16 DUP (?)
-        hHeap               DD ?
         hBlock              DD ?
+        hDEP                DD ?
+        hDLLKernel32        DD ?
+        hFileCRC            DD ?
+        hHash               DD ?
+        hHash256            DD ?
+        hHeap               DD ?
+        hProv               DD ?
+        hProv256            DD ?
+        hThread1            DD ?
+        hThread2            DD ?      
+        InBuffer            DB 128 DUP (?)
+        ItemBuffer          DB 32769 DUP (?)          ;Buffer for Commadline Args 
         lpFileBuf           DD ?
+        MaxCompressionAsc   DB 20 DUP (?)
         ThreadID1           DD ?
         ThreadID2           DD ?
         ThreadParam1        DD ?
         ThreadParam2        DD ?
-        hThread1            DD ?
-        hThread2            DD ?      
-        
-        
-        
+        TMP                 DD ?
+
 
 .data
-        CRC32Result         DD 0FFFFFFFFh
-        Conversion          DB 11 DUP (0)
-        CR_LF               DB 10,13,0  
-        TabSign             DB 9,0 
-        FrequencyTable      DD 256 DUP (0)          ;Currently Max 4GByte but due to DD
-        FileLenAsc          DB 32 DUP (0)
-        Entropy             DD 00h
-        Invert              DD -1.00
         Base                DD 1.00
-        ByteSize            DD 8.00
-        FreqAsc             DB 20 DUP (0)
-        EntropyAsc          DB 20 DUP (0)
-        LenBuffer           DD 128
-        DQEntropy           DQ 0  
-        DDMaxCompression    DD 0  
-        SubString           DB "/f",0
-        UserDLL             DB "kernel32",0
-        strDEP              DB "SetProcessDEPPolicy",0
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
+        ByteSize            DD 8.00
+        CR_LF               DB 10,13,0  
+        CRC32Result         DD 0FFFFFFFFh
+        DDMaxCompression    DD 0  
+        DQEntropy           DQ 0  
+        Entropy             DD 00h
         HighOrderSize       DD 0
+        Invert              DD -1.00
+        strDEP              DB "SetProcessDEPPolicy",0
+        SubString           DB "/f",0
+        TabSign             DB 9,0 
+        UserDLL             DB "kernel32",0
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -108,18 +106,18 @@ start:
   
 NoDEP:  
   
-        invoke getcl_ex,1,ADDR ItemBuffer                     ;GetCL has problems with Buffer-overflows... thus getcl_ex!                        
+        invoke getcl_ex,1,ADDR ItemBuffer                  ;GetCL has problems with Buffer-overflows... thus getcl_ex!                        
         cmp  eax,1
         jne  NoCmdLn
         
         mov  eax,dword ptr [ItemBuffer]
-        cmp  eax,"pleh"                                     ;crc32 help or...
-        je   Help
-        cmp  ax,"?/"                                        ;crc32 /? will show the help
+        cmp  eax,"pleh"                                    ;crc32 help or...
+        je   Help                                          
+        cmp  ax,"?/"                                       ;crc32 /? will show the help
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Windows32 Commandline. Ver. 1.05"
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.06"
         invoke StdOut,ADDR CR_LF
         print "Syntax: CRC32 filename.ext [/f]"
         invoke StdOut,ADDR CR_LF
@@ -419,7 +417,7 @@ IsZero:
         invoke StdOut,ADDR EntropyAsc
         invoke StdOut,ADDR CR_LF
         
-        print "Max compress.: "                                 ;Show theoretical maximum compression (Entropy*FileLength/8)
+        print "Approx. comp.: "                                 ;Show theoretical maximum compression (Entropy*FileLength/8)
         invoke StdOut,ADDR TabSign
         invoke udw2str,DDMaxCompression,ADDR MaxCompressionAsc
         invoke StdOut,ADDR MaxCompressionAsc
