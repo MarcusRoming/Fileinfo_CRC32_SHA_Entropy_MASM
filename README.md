@@ -8,6 +8,7 @@ New:
   - New memory allocation
   - Much faster due to parallel processing via Multithreading. 
   - Can calculate CRC32 and Hashes for arbitrary huge file sizes. For files > 2GByte entropy/frequency table generation will be skipped. 
+  - Now precise size results!
 
 Purpose: 
 
@@ -34,8 +35,8 @@ Info:
   
 To do: 
   - Add MD5 ?
-  - Precise results for KByte, MByte sizes
   - Info about packers, file headers etc.
-  - Take care to close all handles, ressources properly
+  - Clipboard commandline switches, to copy hash value to clipboard (/S1 /S256) with MASM lib SetClipboardText
+  - Use "ALIGN" to speed up the program!
   
 Tested under Win7-64 and Win7-32.

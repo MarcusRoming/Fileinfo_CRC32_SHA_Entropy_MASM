@@ -34,10 +34,10 @@
     
 
 
-.data?
-        @rgbDigits          DB 16 DUP (?)
-        BytesRead           DD ?
-        Conversion          DB 11 DUP (?)
+.data?                                                ;Note: Alignment seems to have dramatic effects on                
+        @rgbDigits          DB 16 DUP (?)             ;speed here. Simply changing order of variabels 
+        BytesRead           DD ?                      ;has strong effects! 
+        Conversion          DB 11 DUP (?)             ;ToDo: Use ALIGN plus intelligent order!
         CRC32Table          DB 2048 DUP (?)
         DWRC                DD ?
         EntropyAsc          DB 20 DUP (?)
@@ -68,14 +68,15 @@
         ThreadParam1        DD ?
         ThreadParam2        DD ?
         TMP                 DD ?
-
+        DQFileLen           DQ ?
+        DQFileLenMB         DQ ?
 
 .data
         Base                DD 1.00
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
         ByteSize            DD 8.00
-        CR_LF               DB 10,13,0  
+        CR_LF               DB 10,13,0
         CRC32Result         DD 0FFFFFFFFh
         DDMaxCompression    DD 0  
         DQEntropy           DQ 0  
@@ -86,6 +87,7 @@
         SubString           DB "/f",0
         TabSign             DB 9,0 
         UserDLL             DB "kernel32",0
+        ConstDiv            DD 1024 
 
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------
     
@@ -117,7 +119,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.06"
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.07"
         invoke StdOut,ADDR CR_LF
         print "Syntax: CRC32 filename.ext [/f]"
         invoke StdOut,ADDR CR_LF
@@ -319,18 +321,24 @@ NoErr4:
         print " Byte"
         invoke StdOut,ADDR CR_LF
   
-        shr  FileLen,10  
+        finit                                        ;Initialize FPU and calculate KByte Size
+        fild  [FileLen]
+        fidiv [ConstDiv]                             ;divide by 1024
+        fst   [DQFileLen]                            ;Resutl still in ST(0)
+        fidiv [ConstDiv]                             ;divide by 1024 --> MByte
+        fstp  [DQFileLenMB]                          ;Now stack is empty!
+        wait
+
         print "File length  : "
         invoke StdOut,ADDR TabSign
-        invoke dwtoa,FileLen,ADDR FileLenAsc
+        invoke FloatToStr2,DQFileLen,ADDR FileLenAsc
         invoke StdOut,ADDR FileLenAsc
         print " KByte"
         invoke StdOut,ADDR CR_LF
   
-        shr  FileLen,10  
         print "File length  : "
         invoke StdOut,ADDR TabSign
-        invoke dwtoa,FileLen,ADDR FileLenAsc
+        invoke FloatToStr2,DQFileLenMB,ADDR FileLenAsc
         invoke StdOut,ADDR FileLenAsc
         print " MByte"
         invoke StdOut,ADDR CR_LF       
