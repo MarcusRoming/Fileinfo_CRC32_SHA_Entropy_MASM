@@ -250,6 +250,9 @@ CycleCRC:
         cmp  eax,WAIT_FAILED
         je   ThreadErr
         
+        invoke CloseHandle,hThread1
+        invoke CloseHandle,hThread2
+        
         invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?     
         
         
