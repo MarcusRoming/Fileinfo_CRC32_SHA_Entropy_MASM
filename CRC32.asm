@@ -335,6 +335,7 @@ NoErr4:
         print "File length  : "
         invoke StdOut,ADDR TabSign
         invoke FloatToStr2,DQFileLen,ADDR FileLenAsc
+        mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
         print " KByte"
         invoke StdOut,ADDR CR_LF
@@ -342,6 +343,7 @@ NoErr4:
         print "File length  : "
         invoke StdOut,ADDR TabSign
         invoke FloatToStr2,DQFileLenMB,ADDR FileLenAsc
+        mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
         print " MByte"
         invoke StdOut,ADDR CR_LF       
