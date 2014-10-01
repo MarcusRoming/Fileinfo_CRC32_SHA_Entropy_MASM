@@ -34,20 +34,24 @@
     
 
 
-.data?                                                ;Note: Alignment seems to have dramatic effects on                
-        @rgbDigits          DB 16 DUP (?)             ;speed here. Simply changing order of variabels 
-        BytesRead           DD ?                      ;has strong effects! 
-        Conversion          DB 11 DUP (?)             ;ToDo: Use ALIGN plus intelligent order!
+.data?   
+        ALIGN 2                                       ;Note: Alignment seems to have dramatic effects on                
+        @rgbDigits          DB 16 DUP (?)             ;speed here. 
+        Conversion          DB 12 DUP (?)             ;ToDo: Use ALIGN plus intelligent order!
         CRC32Table          DB 2048 DUP (?)
-        DWRC                DD ?
+        MaxCompressionAsc   DB 20 DUP (?)
         EntropyAsc          DB 20 DUP (?)
-        FileLen             DD ?
+        ItemBuffer          DB 32770 DUP (?)          ;Buffer for Commadline Args 
         FileLenAsc          DB 32 DUP (?)
-        FreqAsc             DB 20 DUP (?)     
-        FrequencyTable      DD 256 DUP (?)     
-        FreqVal             DD ?
+        FreqAsc             DB 20 DUP (?)          
+        InBuffer            DB 128 DUP (?)
         HashBuffer          DB 128 DUP (?)
-        HashBufferAsc       DB 128 DUP (?)    
+        HashBufferAsc       DB 128 DUP (?)  
+        ALIGN 4                                       ;Align all DD now...
+        BytesRead           DD ?  
+        DWRC                DD ?
+        FileLen             DD ?
+        FreqVal             DD ? 
         hBlock              DD ?
         hDEP                DD ?
         hDLLKernel32        DD ?
@@ -59,36 +63,38 @@
         hProv256            DD ?
         hThread1            DD ?
         hThread2            DD ?      
-        InBuffer            DB 128 DUP (?)
-        ItemBuffer          DB 32769 DUP (?)          ;Buffer for Commadline Args 
         lpFileBuf           DD ?
-        MaxCompressionAsc   DB 20 DUP (?)
         ThreadID1           DD ?
         ThreadID2           DD ?
         ThreadParam1        DD ?
         ThreadParam2        DD ?
         TMP                 DD ?
+        FrequencyTable      DD 256 DUP (?)
+        ALIGN 8        
         DQFileLen           DQ ?
         DQFileLenMB         DQ ?
 
 .data
+        ALIGN 2
+        CR_LF               DB 10,13,0
+        TabSign             DB 9,0
+        strDEP              DB "SetProcessDEPPolicy",0
+        SubString           DB "/f",0
+        UserDLL             DB "kernel32",0
+        ALIGN 4        
         Base                DD 1.00
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
         ByteSize            DD 8.00
-        CR_LF               DB 10,13,0
+        ConstDiv            DD 1024 
         CRC32Result         DD 0FFFFFFFFh
         DDMaxCompression    DD 0  
-        DQEntropy           DQ 0  
         Entropy             DD 00h
         HighOrderSize       DD 0
         Invert              DD -1.00
-        strDEP              DB "SetProcessDEPPolicy",0
-        SubString           DB "/f",0
-        TabSign             DB 9,0 
-        UserDLL             DB "kernel32",0
-        ConstDiv            DD 1024 
-
+        ALIGN 8        
+        DQEntropy           DQ 0  
+        
 ;-----------------------------------------------------------------------------------------------------------------------------------------------------
     
 .code
@@ -119,7 +125,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.07"
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.08"
         invoke StdOut,ADDR CR_LF
         print "Syntax: CRC32 filename.ext [/f]"
         invoke StdOut,ADDR CR_LF
