@@ -130,7 +130,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.08",10,13
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.10",10,13
         print "Syntax: CRC32 filename.ext [/f]",10,13
         print "CRC32 Polynom: 0EDB88320h",10,13
         print "StartValue: 0FFFFFFFFh",10,13
