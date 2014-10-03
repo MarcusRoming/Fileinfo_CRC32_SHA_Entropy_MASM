@@ -31,13 +31,13 @@
     HashConvert         PROTO  BufLengthP:DWORD
     ThreadProc1         PROTO  ;For SHA1
     ThreadProc2         PROTO  ;For SHA256
-    
+    ThreadProc3         PROTO  ;For MD5
 
 
 .data?   
         ALIGN 2                                       ;Note: Alignment seems to have dramatic effects on                
         @rgbDigits          DB 16 DUP (?)             ;speed here. 
-        Conversion          DB 12 DUP (?)             ;ToDo: Use ALIGN plus intelligent order!
+        Conversion          DB 12 DUP (?)             ;ToDo: Optimize further, seems to be not optimal...
         CRC32Table          DB 2048 DUP (?)
         MaxCompressionAsc   DB 20 DUP (?)
         EntropyAsc          DB 20 DUP (?)
@@ -56,18 +56,22 @@
         hDEP                DD ?
         hDLLKernel32        DD ?
         hFileCRC            DD ?
-        hHash               DD ?
+        hHashMD5            DD ?
+        hHashSHA1           DD ?
         hHash256            DD ?
         hHeap               DD ?
         hProv               DD ?
         hProv256            DD ?
         hThread1            DD ?
-        hThread2            DD ?      
+        hThread2            DD ?  
+        hThread3            DD ?
         lpFileBuf           DD ?
         ThreadID1           DD ?
         ThreadID2           DD ?
+        ThreadID3           DD ?
         ThreadParam1        DD ?
         ThreadParam2        DD ?
+        ThreadParam3        DD ?
         TMP                 DD ?
         FrequencyTable      DD 256 DUP (?)
         ALIGN 8        
@@ -83,6 +87,7 @@
         UserDLL             DB "kernel32",0
         ALIGN 4        
         Base                DD 1.00
+        BufLengthMD5        DD 33
         BufLengthSHA1       DD 41
         BufLengthSHA256     DD 64
         ByteSize            DD 8.00
@@ -125,14 +130,10 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.08"
-        invoke StdOut,ADDR CR_LF
-        print "Syntax: CRC32 filename.ext [/f]"
-        invoke StdOut,ADDR CR_LF
-        print "CRC32 Polynom: 0EDB88320h"
-        invoke StdOut,ADDR CR_LF
-        print "StartValue: 0FFFFFFFFh"
-        invoke StdOut,ADDR CR_LF
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.08",10,13
+        print "Syntax: CRC32 filename.ext [/f]",10,13
+        print "CRC32 Polynom: 0EDB88320h",10,13
+        print "StartValue: 0FFFFFFFFh",10,13
         jmp  Ende
 
 NoHelp:
@@ -141,15 +142,16 @@ NoHelp:
         invoke CryptCreateHash, hProv256, CALG_SHA_256, 0, 0, ADDR hHash256
     
         invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0           ;SHA1
-        invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHash
+        invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHashSHA1
+        
+        invoke CryptCreateHash, hProv, CALG_MD5, 0, 0, ADDR hHashMD5            ;MD5
             
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
         cmp  eax,-1
         jne  NoErr1
 
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to open file!"
-        invoke StdOut,ADDR CR_LF
+        print "Error: Unable to open file!",10,13
         jmp  Ende
 
 NoErr1:
@@ -166,8 +168,7 @@ NoErr1:
         jnz  AllOk
         
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to allocate Memory!"
-        invoke StdOut,ADDR CR_LF
+        print "Error: Unable to allocate Memory!",10,13
         jmp  Ende
 
 AllOk:  mov  hBlock,eax
@@ -181,8 +182,7 @@ AllOk:  mov  hBlock,eax
         jne  NoErr2
 
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to read file!"
-        invoke StdOut,ADDR CR_LF
+        print "Error: Unable to read file!",10,13
         invoke CloseHandle,hFileCRC
         jmp  Ende
 NoErr2:                                    ;File successfully opened!
@@ -191,8 +191,7 @@ NoErr2:                                    ;File successfully opened!
         jne  NoErr3
 
         invoke StdOut,ADDR CR_LF
-        print "Error: 0-Byte File (CRC32=0) read error!"
-        invoke StdOut,ADDR CR_LF
+        print "Error: 0-Byte File (CRC32=0) read error!",10,13
         jmp  Ende
 
 NoErr3:
@@ -207,7 +206,7 @@ NoErr3:
         mov  ecx,[BytesRead]
 CycleCRC:
          
-        pushad
+        pushad ;push  eax seems to be not enough.
 
         invoke  CreateThread, NULL, 0, ADDR ThreadProc1, ADDR ThreadParam1, 0, ADDR ThreadID1  ;Start Thread that calculates SHA1
         mov  hThread1,eax
@@ -217,7 +216,11 @@ CycleCRC:
         mov  hThread2,eax
         cmp  eax,0
         je   ThreadErr
-        ;Now both threads work in parallel
+        invoke  CreateThread, NULL, 0, ADDR ThreadProc3, ADDR ThreadParam3, 0, ADDR ThreadID3  ;Start Thread that calculates MD5
+        mov  hThread3,eax
+        cmp  eax,0
+        je   ThreadErr
+        ;Now all threads work in parallel
         popad
         
         mov  esi,lpFileBuf
@@ -228,15 +231,17 @@ CycleCRC:
             xor  eax,eax
             
             mov  al,byte ptr [esi]
-            pushad
-            mov  ebx,OFFSET FrequencyTable
-            shl  eax,2
-            add  ebx,eax
-            inc  dword ptr [ebx]
-            popad  
+            push ebx
+            push eax
+            mov  ebx,OFFSET FrequencyTable  ;Populate the frequ. table for entropy calculation:
+            shl  eax,2                      ;eax contains the byte value. Times 4 since we have dword values in the table!
+            add  ebx,eax                    ;ebx now points to the correct pos. in the table
+            inc  dword ptr [ebx]            ;Increment this position
+            pop  eax
+            pop  ebx
             mov  ebx,[CRC32Result]
             xor  ebx,eax
-            mov  edi,ebx                ;edi statt bzw. n 
+            mov  edi,ebx                    ;edi statt bzw. n 
             pop  [CRC32Result]
             and  [CRC32Result],0FFFFFF00h
             mov  eax,[CRC32Result]
@@ -249,18 +254,23 @@ CycleCRC:
         Loop CRCLoop
     
         
-        invoke WaitForSingleObject,hThread1,30000      ;Wait for Thread-Results
+        
+        invoke WaitForSingleObject,hThread1,90000      ;Wait for Thread-Results
         cmp  eax,WAIT_FAILED
         je   ThreadErr
-        invoke WaitForSingleObject,hThread2,30000 
+        invoke WaitForSingleObject,hThread2,90000 
+        cmp  eax,WAIT_FAILED
+        je   ThreadErr
+        invoke WaitForSingleObject,hThread3,90000 
         cmp  eax,WAIT_FAILED
         je   ThreadErr
         
         invoke CloseHandle,hThread1
         invoke CloseHandle,hThread2
+        invoke CloseHandle,hThread3
         
         invoke ReadFile,hFileCRC,lpFileBuf,ALLOC_MEM,ADDR BytesRead,NULL   ;More data available?     
-        
+        ;Note: We have to wait until both threads are ready otherwise we overwrite data that still in use!
         
         mov  ecx,[BytesRead]
         cmp  ecx,0
@@ -275,7 +285,6 @@ jne  CycleCRC
         invoke StdOut,ADDR Conversion
         invoke StdOut,ADDR CR_LF
     
-        invoke CryptGetHashParam, hHash,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1
         
         ;initialize array for conversion digits
         mov DWORD PTR [@rgbDigits],"3210"
@@ -283,6 +292,17 @@ jne  CycleCRC
         mov DWORD PTR [@rgbDigits+8],"ba98"
         mov DWORD PTR [@rgbDigits+12],"fedc" 
         
+        invoke CryptGetHashParam, hHashMD5,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthMD5, 0         ;Create MD5 
+      
+        print "MD5   (HEX)  : "
+        invoke StdOut,ADDR TabSign
+
+        invoke HashConvert,BufLengthMD5
+        invoke StdOut,ADDR HashBufferAsc
+        invoke StdOut,ADDR CR_LF
+    
+        invoke CryptGetHashParam, hHashSHA1,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1  
+      
         print "SHA 1 (HEX)  : "
         invoke StdOut,ADDR TabSign
 
@@ -298,7 +318,8 @@ jne  CycleCRC
         invoke HashConvert,BufLengthSHA256
         invoke StdOut,ADDR HashBufferAsc
         
-        invoke CryptDestroyHash,hHash
+        invoke CryptDestroyHash,hHashMD5       
+        invoke CryptDestroyHash,hHashSHA1
         invoke CryptReleaseContext,hProv, NULL  
 
         invoke CryptDestroyHash,hHash256
@@ -316,8 +337,7 @@ jne  CycleCRC
         
 TooLarge:
         invoke StdOut,ADDR CR_LF
-        print "Error : File too big for file size and entropy. Will skip calculations!"
-        invoke StdOut,ADDR CR_LF
+        print "Error : File too big for file size and entropy. Will skip calculations!",10,13
         jmp  Ende
 
 NoErr4:        
@@ -327,8 +347,7 @@ NoErr4:
         invoke StdOut,ADDR TabSign
         invoke udw2str,FileLen,ADDR FileLenAsc       ;udw2str = unsigned dword to string
         invoke StdOut,ADDR FileLenAsc
-        print " Byte"
-        invoke StdOut,ADDR CR_LF
+        print " Byte",10,13
   
         finit                                        ;Initialize FPU and calculate KByte Size
         fild  [FileLen]
@@ -343,16 +362,14 @@ NoErr4:
         invoke FloatToStr2,DQFileLen,ADDR FileLenAsc
         mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
-        print " KByte"
-        invoke StdOut,ADDR CR_LF
+        print " KByte",10,13
   
         print "File length  : "
         invoke StdOut,ADDR TabSign
         invoke FloatToStr2,DQFileLenMB,ADDR FileLenAsc
         mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
-        print " MByte"
-        invoke StdOut,ADDR CR_LF       
+        print " MByte",10,13   
     
         pop  FileLen 
   
@@ -448,14 +465,12 @@ IsZero:
         
 ThreadErr:  
         invoke StdOut,ADDR CR_LF
-        print "Error: Thread error!"
-        invoke StdOut,ADDR CR_LF      
+        print "Error: Thread error!",10,13   
         jmp  Ende          
 
 NoCmdLn:
         invoke StdOut,ADDR CR_LF
-        print "Error: Missing commandline, /? or help for help!"
-        invoke StdOut,ADDR CR_LF
+        print "Error: Missing commandline, /? or help for help!",10,13
     
 Ende:   invoke CloseHandle,hFileCRC
         invoke  ExitProcess,eax
@@ -536,7 +551,7 @@ HashConvert  ENDP
 
 ThreadProc1  PROC
 
-        invoke CryptHashData,hHash,lpFileBuf,BytesRead, 0
+        invoke CryptHashData,hHashSHA1,lpFileBuf,BytesRead, 0
         ret
              
 ThreadProc1  ENDP  
@@ -546,7 +561,14 @@ ThreadProc2  PROC
         invoke CryptHashData,hHash256,lpFileBuf,BytesRead, 0
         ret
              
-ThreadProc2  ENDP                
+ThreadProc2  ENDP      
+
+ThreadProc3  PROC
+
+        invoke CryptHashData,hHashMD5,lpFileBuf,BytesRead, 0
+        ret
+             
+ThreadProc3  ENDP               
 
 
 END start
