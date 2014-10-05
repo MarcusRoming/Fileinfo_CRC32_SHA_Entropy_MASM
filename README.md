@@ -35,17 +35,13 @@ Info:
   - Written in Assembler 32 Bit, MASM
   
 To do: 
-  - Add MD5 ?
   - Info about packers, file headers etc.
   - Clipboard commandline switches, to copy hash value to clipboard (/S1 /S256) with MASM lib SetClipboardText
-  - Use "ALIGN" to speed up the program!
   
 Tested under Win7-64 and Win7-32.         
 
 --------------------------------------------------------------------------------------------------------------------------------------------------
 Hash values of current executable, determined by the program itself of course:
-
->crc32 crc32.exe
 
 CRC32 (HEX)  :  E801FBC7
 MD5   (HEX)  :  11c7cfeeca9e85b4e9339bf4b93676fd
