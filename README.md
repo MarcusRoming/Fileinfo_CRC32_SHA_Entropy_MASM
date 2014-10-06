@@ -9,6 +9,7 @@ New:
   - Much faster due to parallel processing via Multithreading. 
   - Can calculate CRC32 and Hashes for arbitrary huge file sizes. For files > 2GByte entropy/frequency table generation will be skipped. 
   - Now precise size results!
+  - Fixed minor CR-LF bug!
 
 Purpose: 
 
@@ -18,7 +19,7 @@ Purpose:
   - SHA1-Hash (via Crypto-API)
   - SHA 256 Hash (via Crypto-API)
   - MD5 Hash (via Crypto-API) --> Insecure but still widely used, thus included!
-  - Size of the files (currently rounded, needs improvement)
+  - Size of the files in Byte, KByte and MByte
   - Frequency table (use /f)
   - Type "CRC32 /?" for help.
   
@@ -43,13 +44,13 @@ Tested under Win7-64 and Win7-32.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 Hash values of current executable, determined by the program itself of course:
 
-CRC32 (HEX)  :  E801FBC7
-MD5   (HEX)  :  11c7cfeeca9e85b4e9339bf4b93676fd
-SHA 1 (HEX)  :  c1d1e99f4a9312e92506df7d1b49ed986ebebfef
-SHA256(HEX)  :  019cfc8e706921946453f77b4585f5fffb1c18a3ee27b9739979d7aed83ddff9
+CRC32 (HEX)  :  89D8ABFD
+MD5   (HEX)  :  2e52be36293a9831e16ae8b4a216e115
+SHA 1 (HEX)  :  6c865f476272b9c0bc69ec222e42d805c85811b4
+SHA256(HEX)  :  0441ec584bb0c3dfab7571c40dbaaec7c195a244d154f39d65c6fa74ab6f48e0
 File length  :  8704 Byte
 File length  :  8.5 KByte
 File length  :  0.00830 MByte
 Freq. table  :  Use /f !
-Entropy      :  5.195062
+Entropy      :  5.194532
 Approx. comp.:  5652 Byte

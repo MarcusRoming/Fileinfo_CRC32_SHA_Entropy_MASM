@@ -80,7 +80,7 @@
 
 .data
         ALIGN 2
-        CR_LF               DB 10,13,0
+        CR_LF               DB 13,10,0
         TabSign             DB 9,0
         strDEP              DB "SetProcessDEPPolicy",0
         SubString           DB "/f",0
@@ -130,10 +130,10 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.10",10,13
-        print "Syntax: CRC32 filename.ext [/f]",10,13
-        print "CRC32 Polynom: 0EDB88320h",10,13
-        print "StartValue: 0FFFFFFFFh",10,13
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.20",13,10
+        print "Syntax: CRC32 filename.ext [/f]",13,10
+        print "CRC32 Polynom: 0EDB88320h",13,10
+        print "StartValue: 0FFFFFFFFh",13,10
         jmp  Ende
 
 NoHelp:
@@ -151,7 +151,7 @@ NoHelp:
         jne  NoErr1
 
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to open file!",10,13
+        print "Error: Unable to open file!",13,10
         jmp  Ende
 
 NoErr1:
@@ -168,7 +168,7 @@ NoErr1:
         jnz  AllOk
         
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to allocate Memory!",10,13
+        print "Error: Unable to allocate Memory!",13,10
         jmp  Ende
 
 AllOk:  mov  hBlock,eax
@@ -182,7 +182,7 @@ AllOk:  mov  hBlock,eax
         jne  NoErr2
 
         invoke StdOut,ADDR CR_LF
-        print "Error: Unable to read file!",10,13
+        print "Error: Unable to read file!",13,10
         invoke CloseHandle,hFileCRC
         jmp  Ende
 NoErr2:                                    ;File successfully opened!
@@ -191,7 +191,7 @@ NoErr2:                                    ;File successfully opened!
         jne  NoErr3
 
         invoke StdOut,ADDR CR_LF
-        print "Error: 0-Byte File (CRC32=0) read error!",10,13
+        print "Error: 0-Byte File (CRC32=0) read error!",13,10
         jmp  Ende
 
 NoErr3:
@@ -337,7 +337,7 @@ jne  CycleCRC
         
 TooLarge:
         invoke StdOut,ADDR CR_LF
-        print "Error : File too big for file size and entropy. Will skip calculations!",10,13
+        print "Error : File too big for file size and entropy. Will skip calculations!",13,10
         jmp  Ende
 
 NoErr4:        
@@ -347,7 +347,7 @@ NoErr4:
         invoke StdOut,ADDR TabSign
         invoke udw2str,FileLen,ADDR FileLenAsc       ;udw2str = unsigned dword to string
         invoke StdOut,ADDR FileLenAsc
-        print " Byte",10,13
+        print " Byte",13,10
   
         finit                                        ;Initialize FPU and calculate KByte Size
         fild  [FileLen]
@@ -362,14 +362,14 @@ NoErr4:
         invoke FloatToStr2,DQFileLen,ADDR FileLenAsc
         mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
-        print " KByte",10,13
+        print " KByte",13,10
   
         print "File length  : "
         invoke StdOut,ADDR TabSign
         invoke FloatToStr2,DQFileLenMB,ADDR FileLenAsc
         mov    byte ptr [FileLenAsc + 7],00h         ;Will allow a maximum of 6 Digits plus comma!
         invoke StdOut,ADDR FileLenAsc
-        print " MByte",10,13   
+        print " MByte",13,10   
     
         pop  FileLen 
   
@@ -465,12 +465,12 @@ IsZero:
         
 ThreadErr:  
         invoke StdOut,ADDR CR_LF
-        print "Error: Thread error!",10,13   
+        print "Error: Thread error!",13,10   
         jmp  Ende          
 
 NoCmdLn:
         invoke StdOut,ADDR CR_LF
-        print "Error: Missing commandline, /? or help for help!",10,13
+        print "Error: Missing commandline, /? or help for help!",13,10
     
 Ende:   invoke CloseHandle,hFileCRC
         invoke  ExitProcess,eax
