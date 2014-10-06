@@ -41,7 +41,6 @@ To do:
   
 Tested under Win7-64 and Win7-32.         
 
---------------------------------------------------------------------------------------------------------------------------------------------------
 Hash values of current executable, determined by the program itself of course:
 
 CRC32 (HEX)  :  89D8ABFD
