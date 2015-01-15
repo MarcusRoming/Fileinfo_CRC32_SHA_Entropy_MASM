@@ -123,9 +123,7 @@ NoDEP:
         cmp  eax,1
         jne  NoCmdLn
         
-        mov  eax,dword ptr [ItemBuffer]
-        cmp  eax,"pleh"                                    ;crc32 help or...
-        je   Help                                          
+        mov  eax,dword ptr [ItemBuffer]                                   
         cmp  ax,"?/"                                       ;crc32 /? will show the help
         jne  NoHelp
 Help:
@@ -470,7 +468,7 @@ ThreadErr:
 
 NoCmdLn:
         invoke StdOut,ADDR CR_LF
-        print "Error: Missing commandline, /? or help for help!",13,10
+        print "Error: Missing commandline, /? for help!",13,10
     
 Ende:   invoke CloseHandle,hFileCRC
         invoke  ExitProcess,eax
