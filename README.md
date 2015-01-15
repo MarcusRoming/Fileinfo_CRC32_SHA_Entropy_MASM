@@ -15,13 +15,14 @@ Purpose:
 
   Get some fileinfos like:
   - CRC32
-  - Shannon Entropy
+  - Shannon Entropy (the more unoredered the file the higher, maximum is 8)
   - SHA1-Hash (via Crypto-API)
   - SHA 256 Hash (via Crypto-API)
   - MD5 Hash (via Crypto-API) --> Insecure but still widely used, thus included!
   - Size of the files in Byte, KByte and MByte
   - Frequency table (use /f)
   - Type "CRC32 /?" for help.
+  - Approx. comp. gives a feeling about how far the file can be compressed. Not very accurate though!
   
 Syntax:
   - crc32 "Test File.ext" /f
@@ -33,7 +34,7 @@ Syntax:
   --> TIP: Use the Tab-Key to complete long filenames! You can press it several times if needed.
      
 Info:  
-  - Written in Assembler 32 Bit, MASM
+  - Written in Assembler 32 Bit, MASM, Marcus Roming.
   
 To do: 
   - Info about packers, file headers etc.
@@ -43,22 +44,14 @@ Tested under Win7-64 and Win7-32.
 
 Hash values of current executable, determined by the program itself of course:
 
-CRC32 (HEX)  :  89D8ABFD
-
-MD5   (HEX)  :  2e52be36293a9831e16ae8b4a216e115
-
-SHA 1 (HEX)  :  6c865f476272b9c0bc69ec222e42d805c85811b4
-
-SHA256(HEX)  :  0441ec584bb0c3dfab7571c40dbaaec7c195a244d154f39d65c6fa74ab6f48e0
-
+CRC32 (HEX)  :  E60C5B4B
+MD5   (HEX)  :  f3523887337f47c40118cf8efc6c096b
+SHA 1 (HEX)  :  f10c1ad5cf0a638b912a88bdb06d405dee110629
+SHA256(HEX)  :  bb621e507c922498c036cec6ea8506baac3a028d3edbc79bdf45ef519159fd7e
 File length  :  8704 Byte
-
 File length  :  8.5 KByte
-
 File length  :  0.00830 MByte
-
 Freq. table  :  Use /f !
+Entropy      :  5.179952
+Approx. comp.:  5636 Byte
 
-Entropy      :  5.194532
-
-Approx. comp.:  5652 Byte
