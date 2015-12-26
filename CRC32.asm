@@ -7,6 +7,7 @@
     include c:\masm32\include\kernel32.inc
     include c:\masm32\include\masm32.inc
     include c:\masm32\include\Advapi32.inc
+    include c:\masm32\macros\macros.asm
     include macro.inc
 
     includelib c:\masm32\lib\user32.lib
@@ -29,6 +30,7 @@
     CALG_SHA_256        equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA_256)  
     
     HashConvert         PROTO  BufLengthP:DWORD
+    SetClipboardText2   PROTO  ptxt:DWORD
     ThreadProc1         PROTO  ;For SHA1
     ThreadProc2         PROTO  ;For SHA256
     ThreadProc3         PROTO  ;For MD5
@@ -395,6 +397,7 @@ FTable:
         Loop FTable
         jmp  FreqOk
         
+        
 NoTableOut:
         invoke StdOut,ADDR TabSign
         print "Use /f !"
@@ -458,6 +461,17 @@ IsZero:
         print " Byte"
         invoke StdOut,ADDR CR_LF
         
+        ;Test for clipboard cmd
+        mov  eax,dword ptr [ItemBuffer]
+        cmp  ax,"2S/"    
+        jne  Ende
+        
+        print "Info         : " 
+        invoke StdOut,ADDR TabSign
+        invoke SetClipboardText2,ADDR HashBufferAsc
+        print "Copied SHA256 to clipboard!"
+        
+        ; Get next cmdline Item!
         
         jmp Ende  
         
@@ -546,6 +560,40 @@ jnz LoopingP
         ret
 
 HashConvert  ENDP        
+
+;-----------------------------------------------------------------Copy Text to clipbaord modified----------------------------------------------------
+; This is a modified version of setcbtxt.asm sice the original SetClipboardText from masmlib did not work!
+;----------------------------------------------------------------------------------------------------------------------------------------------------
+
+SetClipboardText2 PROC ptxt:DWORD
+
+        LOCAL hMem  :DWORD
+        LOCAL pMem  :DWORD
+        LOCAL slen  :DWORD
+
+        invoke StrLen, ptxt                         ; get length of text
+        mov slen,eax
+        add slen,64
+
+        invoke GlobalAlloc,GMEM_MOVEABLE or GMEM_DDESHARE,slen                   ; allocate memory
+        mov hMem, eax
+        invoke GlobalLock,hMem                      ; lock memory
+        mov pMem, eax
+
+        cst pMem, ptxt                              ; copy text to allocated memory
+
+        invoke OpenClipboard,NULL                   ; open clipboard
+        invoke EmptyClipboard
+        invoke SetClipboardData,CF_TEXT,pMem        ; write data to it
+
+        invoke GlobalUnlock,hMem                    ; unlock memory
+        invoke GlobalFree,hMem                      ; deallocate memory
+    
+        invoke CloseClipboard                       ; close clipboard
+
+        ret
+      
+SetClipboardText2 ENDP
 
 ThreadProc1  PROC
 
