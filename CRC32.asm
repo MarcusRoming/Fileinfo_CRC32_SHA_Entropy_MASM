@@ -29,7 +29,7 @@
     CALG_SHA1           equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA) 
     CALG_SHA_256        equ (ALG_CLASS_HASH or ALG_TYPE_ANY or ALG_SID_SHA_256)  
     
-    HashConvert         PROTO  BufLengthP:DWORD
+    HashConvert         PROTO  BufLengthP:DWORD, HashBufferA:DWORD
     SetClipboardText2   PROTO  ptxt:DWORD
     ThreadProc1         PROTO  ;For SHA1
     ThreadProc2         PROTO  ;For SHA256
@@ -48,7 +48,10 @@
         FreqAsc             DB 20 DUP (?)          
         InBuffer            DB 128 DUP (?)
         HashBuffer          DB 128 DUP (?)
-        HashBufferAsc       DB 128 DUP (?)  
+        HashBufferAscMD5    DB 128 DUP (?) 
+        HashBufferAscSHA1   DB 128 DUP (?) 
+        HashBufferAscSHA256 DB 128 DUP (?) 
+        
         ALIGN 4                                       ;Align all DD now...
         BytesRead           DD ?  
         DWRC                DD ?
@@ -87,6 +90,7 @@
         strDEP              DB "SetProcessDEPPolicy",0
         SubString           DB "/f",0
         UserDLL             DB "kernel32",0
+        CLFlag              DB 00h
         ALIGN 4        
         Base                DD 1.00
         BufLengthMD5        DD 33
@@ -130,8 +134,12 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.30",13,10
-        print "Syntax: CRC32 filename.ext [/f]",13,10
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.31",13,10
+        print "Syntax: CRC32 filename.ext [/f] [/1] [/2] [/5]",13,10
+        print " ",13,10
+        print "/f for freq. table, /1 or /2 or /5 to copy SHA1, SHA256 or MD5 to clipboard!",13,10
+        print " ",13,10
+        print "See https://github.com/MarcusRoming for more!",13,10
         print "CRC32 Polynom: 0EDB88320h",13,10
         print "StartValue: 0FFFFFFFFh",13,10
         jmp  Ende
@@ -297,8 +305,8 @@ jne  CycleCRC
         print "MD5   (HEX)  : "
         invoke StdOut,ADDR TabSign
 
-        invoke HashConvert,BufLengthMD5
-        invoke StdOut,ADDR HashBufferAsc
+        invoke HashConvert,BufLengthMD5,ADDR HashBufferAscMD5
+        invoke StdOut,ADDR HashBufferAscMD5
         invoke StdOut,ADDR CR_LF
     
         invoke CryptGetHashParam, hHashSHA1,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1  
@@ -306,8 +314,8 @@ jne  CycleCRC
         print "SHA 1 (HEX)  : "
         invoke StdOut,ADDR TabSign
 
-        invoke HashConvert,BufLengthSHA1
-        invoke StdOut,ADDR HashBufferAsc
+        invoke HashConvert,BufLengthSHA1,ADDR HashBufferAscSHA1
+        invoke StdOut,ADDR HashBufferAscSHA1
         invoke StdOut,ADDR CR_LF
         
         invoke CryptGetHashParam, hHash256,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA256, 0     ;Create SHA256
@@ -315,8 +323,8 @@ jne  CycleCRC
         print "SHA256(HEX)  : "
         invoke StdOut,ADDR TabSign
 
-        invoke HashConvert,BufLengthSHA256
-        invoke StdOut,ADDR HashBufferAsc
+        invoke HashConvert,BufLengthSHA256,ADDR HashBufferAscSHA256
+        invoke StdOut,ADDR HashBufferAscSHA256
         
         invoke CryptDestroyHash,hHashMD5       
         invoke CryptDestroyHash,hHashSHA1
@@ -377,10 +385,18 @@ NoErr4:
 
         print "Freq. table  : "
 
-        invoke  getcl_ex,2,ADDR ItemBuffer
+        invoke  getcl_ex,3,ADDR ItemBuffer      
+        mov  eax,dword ptr [ItemBuffer]
+        cmp  ax,"f/"    
+        je   FTableOut
+        
+        invoke  getcl_ex,2,ADDR ItemBuffer      
         mov  eax,dword ptr [ItemBuffer]
         cmp  ax,"f/"    
         jne  NoTableOut
+        
+FTableOut:
+        
         invoke StdOut,ADDR CR_LF
                                          
         mov  ecx,256
@@ -399,6 +415,8 @@ FTable:
         
         
 NoTableOut:
+        cmp  [CLFlag],01h
+        je   ClipB
         invoke StdOut,ADDR TabSign
         print "Use /f !"
 FreqOk:  
@@ -461,24 +479,60 @@ IsZero:
         print " Byte"
         invoke StdOut,ADDR CR_LF
         
-        ;Test for clipboard cmd
+;-----------------------------------------------------------------Clipboard functions !-------------------------------------------------------------- 
+
+        invoke  getcl_ex,2,ADDR ItemBuffer
+ClipB:       
+        ;/H5: Copy MD5 to clipboard!
         mov  eax,dword ptr [ItemBuffer]
-        cmp  ax,"2S/"    
-        jne  Ende
+        cmp  ax,"5/"    
+        jne  NoMD5
         
         print "Info         : " 
         invoke StdOut,ADDR TabSign
-        invoke SetClipboardText2,ADDR HashBufferAsc
+        invoke SetClipboardText2,ADDR HashBufferAscMD5    
+        print "Copied MD5 to clipboard!"
+        jmp  Ende
+        
+NoMD5:        
+        ;/H1: Copy SHA1 to clipboard!
+        mov  eax,dword ptr [ItemBuffer]
+        cmp  ax,"1/"    
+        jne  NoSHA1
+        
+        print "Info         : " 
+        invoke StdOut,ADDR TabSign
+        invoke SetClipboardText2,ADDR HashBufferAscSHA1    
+        print "Copied SHA1 to clipboard!"
+        jmp  Ende
+        
+NoSHA1:        
+        ;/H2: Copy SHA256 to clipboard!
+        mov  eax,dword ptr [ItemBuffer]
+        cmp  ax,"2/"    
+        jne  NextCmd2
+        
+        print "Info         : " 
+        invoke StdOut,ADDR TabSign
+        invoke SetClipboardText2,ADDR HashBufferAscSHA256     
         print "Copied SHA256 to clipboard!"
         
         ; Get next cmdline Item!
+NextCmd2:
+        
+        cmp  [CLFlag],01h
+        je   Ende
+        mov  [CLFlag],01h
+        invoke  getcl_ex,3,ADDR ItemBuffer
+        jmp  ClipB      
         
         jmp Ende  
         
 ThreadErr:  
         invoke StdOut,ADDR CR_LF
         print "Error: Thread error!",13,10   
-        jmp  Ende          
+        jmp  Ende      
+            
 
 NoCmdLn:
         invoke StdOut,ADDR CR_LF
@@ -529,13 +583,13 @@ CreateCRCTable ENDP
  ;See: http://www.masmforum.com/board/index.php?PHPSESSID=786dd40408172108b65a5a36b09c88c0&action=printpage;topic=4322.0
  ;----------------------------------------------------------------------------------------------------------------------------------------------------
  
-HashConvert  PROC BufLengthP:DWORD 
+HashConvert  PROC BufLengthP:DWORD, HashBufferA:DWORD
 
         pushad
         ;convert the hash to an SHA string using a lookup table
         xor eax,eax
         xor edx,edx
-        mov ebx,OFFSET HashBufferAsc
+        mov ebx,HashBufferA
         lea edi,HashBuffer
         mov ecx,[BufLengthP]
         lea esi,@rgbDigits
