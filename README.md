@@ -4,6 +4,7 @@ Fileinfo_CRC32_SHA_Entropy_MASM
 First project on GitHub, use at your own risk!
 
 New:
+  - Now with clipboard functionality
   - Now with three Hash functions: MD5, SHA1 and SHA256.
   - New memory allocation
   - Much faster due to parallel processing via Multithreading. 
@@ -25,42 +26,42 @@ Purpose:
   - Approx. comp. gives a feeling about how far the file can be compressed. Not very accurate though!
   
 Syntax:
-  - crc32 "Test File.ext" /f
-  -> Will analyze and hash the file >>Test File.ext<< and give out the frequency table.
+    CRC32 filename.ext [/f] [/1] [/2] [/5]
+    /f for freq. table, /1 or /2 or /5 to copy SHA1, SHA256 or MD5 to clipboard!
+
+Examples:
+  - crc32 "Test File.ext" /f /2
+  -> Will analyze and hash the file >>Test File.ext<<, give out the frequency table and copy the SHA256 to the clipboard.
   - crc32 TestFile.ext /f 
   -> Quotes are only needed for filenames with space characters. 
   - crc32 TestFile.ext
   -> Analyze the file without showing the frequency table.
-  --> TIP: Use the Tab-Key to complete long filenames! You can press it several times if needed.
+  --> TIP: Use the Tab-Key to complete long filenames or paths! You can press it several times if needed.
      
 Info:  
   - Written in Assembler 32 Bit, MASM, Marcus Roming.
   
 To do: 
   - Info about packers, file headers etc.
-  - Clipboard commandline switches, to copy hash value to clipboard (/S1 /S256) with MASM lib SetClipboardText
   
 Tested under Win7-64 and Win7-32.         
 
-Hash values of current executable, determined by the program itself of course:
+Hash values of current executable (V. 1.31), determined by the program itself of course:
 
-CRC32 (HEX)  :  E60C5B4B
+CRC32 (HEX)  :  D131E6BC
 
-MD5   (HEX)  :  f3523887337f47c40118cf8efc6c096b
+MD5   (HEX)  :  a4c2c54f628510e47ac8875739095d95
 
-SHA 1 (HEX)  :  f10c1ad5cf0a638b912a88bdb06d405dee110629
+SHA 1 (HEX)  :  731a8acc00f96fb6af5fe563c251a67ae2ad2dce
 
-SHA256(HEX)  :  bb621e507c922498c036cec6ea8506baac3a028d3edbc79bdf45ef519159fd7e
+SHA256(HEX)  :  f443934be42dedb8495981067ad9bf13decb3ca7c802791aba8c6aeb7cc67845
 
-File length  :  8704 Byte
+File length  :  9216 Byte
 
-File length  :  8.5 KByte
+File length  :  9 KByte
 
-File length  :  0.00830 MByte
+File length  :  0.00878 MByte
 
-Freq. table  :  Use /f !
+Entropy      :  5.513607
 
-Entropy      :  5.179952
-
-Approx. comp.:  5636 Byte
 
