@@ -134,7 +134,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.31",13,10
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.34",13,10
         print "Syntax: CRC32 filename.ext [/f] [/1] [/2] [/5]",13,10
         print " ",13,10
         print "/f for freq. table, /1 or /2 or /5 to copy SHA1, SHA256 or MD5 to clipboard!",13,10
@@ -147,12 +147,34 @@ Help:
 NoHelp:
 
         invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0         ;SHA256
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! CAC 256",13,10   
+        .ENDIF
+        
         invoke CryptCreateHash, hProv256, CALG_SHA_256, 0, 0, ADDR hHash256
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! CCH 256",13,10   
+        .ENDIF
     
         invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0           ;SHA1
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! CAC SHA1",13,10   
+        .ENDIF
+        
         invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHashSHA1
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! CCH SHA1",13,10   
+        .ENDIF
         
         invoke CryptCreateHash, hProv, CALG_MD5, 0, 0, ADDR hHashMD5            ;MD5
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line CCH MD5",13,10   
+        .ENDIF
             
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
         cmp  eax,-1
@@ -160,7 +182,7 @@ NoHelp:
 
         invoke StdOut,ADDR CR_LF
         print "Error: Unable to open file!",13,10
-        jmp  Ende
+        jmp  Ende           
 
 NoErr1:
         mov  hFileCRC,eax
@@ -301,29 +323,53 @@ jne  CycleCRC
         mov DWORD PTR [@rgbDigits+12],"fedc" 
         
         invoke CryptGetHashParam, hHashMD5,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthMD5, 0         ;Create MD5 
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line CGHP MD5",13,10   
+        .ENDIF
       
         print "MD5   (HEX)  : "
         invoke StdOut,ADDR TabSign
 
         invoke HashConvert,BufLengthMD5,ADDR HashBufferAscMD5
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line HC MD5",13,10   
+        .ENDIF
         invoke StdOut,ADDR HashBufferAscMD5
         invoke StdOut,ADDR CR_LF
     
         invoke CryptGetHashParam, hHashSHA1,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA1, 0         ;Create SHA1  
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line CGHP SHA1",13,10   
+        .ENDIF
       
         print "SHA 1 (HEX)  : "
         invoke StdOut,ADDR TabSign
 
         invoke HashConvert,BufLengthSHA1,ADDR HashBufferAscSHA1
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line HC SHA1",13,10   
+        .ENDIF
         invoke StdOut,ADDR HashBufferAscSHA1
         invoke StdOut,ADDR CR_LF
         
         invoke CryptGetHashParam, hHash256,HP_HASHVAL, ADDR HashBuffer, ADDR BufLengthSHA256, 0     ;Create SHA256
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line CGHP SHA256",13,10   
+        .ENDIF
         
         print "SHA256(HEX)  : "
         invoke StdOut,ADDR TabSign
 
         invoke HashConvert,BufLengthSHA256,ADDR HashBufferAscSHA256
+        .IF eax == FALSE
+            invoke StdOut,ADDR CR_LF
+            print "Error: Crypto-API initialization error! Line HC SHA256",13,10   
+        .ENDIF
         invoke StdOut,ADDR HashBufferAscSHA256
         
         invoke CryptDestroyHash,hHashMD5       
@@ -537,7 +583,7 @@ ThreadErr:
 NoCmdLn:
         invoke StdOut,ADDR CR_LF
         print "Error: Missing commandline, /? for help!",13,10
-    
+ 
 Ende:   invoke CloseHandle,hFileCRC
         invoke  ExitProcess,eax
 
@@ -611,6 +657,7 @@ jnz LoopingP
         mov [ebx],ax
         popad
         
+        mov eax,1
         ret
 
 HashConvert  ENDP        

@@ -46,22 +46,27 @@ To do:
   
 Tested under Win7-64 and Win7-32.         
 
-Hash values of current executable (V. 1.31), determined by the program itself of course:
+Hash values of current executable (V. 1.34), determined by the program itself of course:
 
-CRC32 (HEX)  :  D131E6BC
 
-MD5   (HEX)  :  a4c2c54f628510e47ac8875739095d95
+CRC32 (HEX)  :  CD9E2A02
 
-SHA 1 (HEX)  :  731a8acc00f96fb6af5fe563c251a67ae2ad2dce
+MD5   (HEX)  :  a46789f5823883e00928ed0e9e873cc1
 
-SHA256(HEX)  :  f443934be42dedb8495981067ad9bf13decb3ca7c802791aba8c6aeb7cc67845
+SHA 1 (HEX)  :  c7a82bf9b647e6b5af50cc4a2c45040794f09f9c
 
-File length  :  9216 Byte
+SHA256(HEX)  :  c7ed07278bd6f85221bc9c3a332c1ad2c4fdbf85b19a15e12b87569b5d3a7ebf
 
-File length  :  9 KByte
+File length  :  9728 Byte
 
-File length  :  0.00878 MByte
+File length  :  9.5 KByte
 
-Entropy      :  5.513607
+File length  :  0.00927 MByte
+
+Freq. table  :  Use /f !
+
+Entropy      :  5.751391
+
+Approx. comp.:  6994 Byte
 
 
