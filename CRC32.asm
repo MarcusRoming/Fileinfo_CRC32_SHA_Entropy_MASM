@@ -51,10 +51,12 @@
         HashBufferAscMD5    DB 128 DUP (?) 
         HashBufferAscSHA1   DB 128 DUP (?) 
         HashBufferAscSHA256 DB 128 DUP (?) 
+        LastError           DB 12 DUP (?)
         
         ALIGN 4                                       ;Align all DD now...
         BytesRead           DD ?  
         DWRC                DD ?
+        ErrVal              DD ?
         FileLen             DD ?
         FreqVal             DD ? 
         hBlock              DD ?
@@ -134,7 +136,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.34",13,10
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.35",13,10
         print "Syntax: CRC32 filename.ext [/f] [/1] [/2] [/5]",13,10
         print " ",13,10
         print "/f for freq. table, /1 or /2 or /5 to copy SHA1, SHA256 or MD5 to clipboard!",13,10
@@ -148,32 +150,52 @@ NoHelp:
 
         invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0         ;SHA256
         .IF eax == FALSE
-            invoke StdOut,ADDR CR_LF
-            print "Error: Crypto-API initialization error! CAC 256",13,10   
+            invoke StdOut,ADDR CR_LF  
+            invoke GetLastError
+            mov  [ErrVal],eax
+            invoke dw2hex,ErrVal,ADDR LastError 
+            invoke StdOut,ADDR LastError
+            print " : Crypto-API initialization error! CryptAcquireContext - SHA256",13,10   
         .ENDIF
         
         invoke CryptCreateHash, hProv256, CALG_SHA_256, 0, 0, ADDR hHash256
         .IF eax == FALSE
-            invoke StdOut,ADDR CR_LF
-            print "Error: Crypto-API initialization error! CCH 256",13,10   
+            invoke StdOut,ADDR CR_LF  
+            invoke GetLastError
+            mov  [ErrVal],eax
+            invoke dw2hex,ErrVal,ADDR LastError 
+            invoke StdOut,ADDR LastError
+            print " : Crypto-API initialization error! CryptCreateHash - SHA256",13,10   
         .ENDIF
     
         invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0           ;SHA1
         .IF eax == FALSE
-            invoke StdOut,ADDR CR_LF
-            print "Error: Crypto-API initialization error! CAC SHA1",13,10   
+            invoke StdOut,ADDR CR_LF  
+            invoke GetLastError
+            mov  [ErrVal],eax
+            invoke dw2hex,ErrVal,ADDR LastError 
+            invoke StdOut,ADDR LastError
+            print " : Crypto-API initialization error! CryptAcquireContext - SHA1",13,10   
         .ENDIF
         
         invoke CryptCreateHash, hProv, CALG_SHA1, 0, 0, ADDR hHashSHA1
         .IF eax == FALSE
-            invoke StdOut,ADDR CR_LF
-            print "Error: Crypto-API initialization error! CCH SHA1",13,10   
+            invoke StdOut,ADDR CR_LF  
+            invoke GetLastError
+            mov  [ErrVal],eax
+            invoke dw2hex,ErrVal,ADDR LastError 
+            invoke StdOut,ADDR LastError
+            print " : Crypto-API initialization error! CryptCreateHash - SHA1",13,10   
         .ENDIF
         
         invoke CryptCreateHash, hProv, CALG_MD5, 0, 0, ADDR hHashMD5            ;MD5
         .IF eax == FALSE
-            invoke StdOut,ADDR CR_LF
-            print "Error: Crypto-API initialization error! Line CCH MD5",13,10   
+            invoke StdOut,ADDR CR_LF  
+            invoke GetLastError
+            mov  [ErrVal],eax
+            invoke dw2hex,ErrVal,ADDR LastError 
+            invoke StdOut,ADDR LastError
+            print " : Crypto-API initialization error! CryptCreateHash - MD5",13,10   
         .ENDIF
             
         invoke CreateFile,ADDR ItemBuffer,GENERIC_READ,0,NULL,OPEN_EXISTING,FILE_FLAG_SEQUENTIAL_SCAN,NULL  ;Open file fom cmd line
