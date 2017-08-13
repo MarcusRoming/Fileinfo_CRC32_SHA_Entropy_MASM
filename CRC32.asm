@@ -148,7 +148,7 @@ Help:
 
 NoHelp:
 
-        invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0         ;SHA256
+        invoke CryptAcquireContext,ADDR hProv256, 0, 0, PROV_RSA_AES, 0F0000000h         ;SHA256
         .IF eax == FALSE
             invoke StdOut,ADDR CR_LF  
             invoke GetLastError
@@ -168,7 +168,7 @@ NoHelp:
             print " : Crypto-API initialization error! CryptCreateHash - SHA256",13,10   
         .ENDIF
     
-        invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0           ;SHA1
+        invoke CryptAcquireContext,ADDR hProv, 0, 0, PROV_RSA_FULL, 0F0000000h           ;SHA1
         .IF eax == FALSE
             invoke StdOut,ADDR CR_LF  
             invoke GetLastError
