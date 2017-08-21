@@ -50,14 +50,23 @@ Tested under Win7-64 and Win7-32.
 Hash values of current executable (V. 1.37), determined by the program itself of course:
 
 CRC32 (HEX)  :  BC75C124
+
 MD5   (HEX)  :  3b20e2fab414e41004a408a6acfcd29b
+
 SHA 1 (HEX)  :  ec2ece3b5c934d510480c67fcb82d941c73ff32a
+
 SHA256(HEX)  :  1783797031d9530e78d52877c8e419058b27a859c7f182f64f6705a43b9806b6
+
 File length  :  10240 Byte
+
 File length  :  10 KByte
+
 File length  :  0.00976 MByte
+
 Freq. table  :  Use /f !
+
 Entropy      :  5.653565
+
 Approx. comp.:  7237 Byte
 
 
