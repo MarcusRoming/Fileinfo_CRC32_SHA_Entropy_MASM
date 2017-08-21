@@ -4,6 +4,7 @@ Fileinfo_CRC32_SHA_Entropy_MASM
 First project on GitHub, use at your own risk!
 
 New:
+  - Fixed bug that prevented hash creation on some systems due to user rights restrictions
   - Now with clipboard functionality
   - Now with three Hash functions: MD5, SHA1 and SHA256.
   - New memory allocation
@@ -39,34 +40,24 @@ Examples:
   --> TIP: Use the Tab-Key to complete long filenames or paths! You can press it several times if needed.
      
 Info:  
-  - Written in Assembler 32 Bit, MASM, Marcus Roming.
+  - Written in Assembler 32 Bit, MASM, Marcus Roming. No guarantee whatsoever.
   
 To do: 
   - Info about packers, file headers etc.
   
 Tested under Win7-64 and Win7-32.         
 
-Hash values of current executable (V. 1.34), determined by the program itself of course:
+Hash values of current executable (V. 1.37), determined by the program itself of course:
 
-
-CRC32 (HEX)  :  CD9E2A02
-
-MD5   (HEX)  :  a46789f5823883e00928ed0e9e873cc1
-
-SHA 1 (HEX)  :  c7a82bf9b647e6b5af50cc4a2c45040794f09f9c
-
-SHA256(HEX)  :  c7ed07278bd6f85221bc9c3a332c1ad2c4fdbf85b19a15e12b87569b5d3a7ebf
-
-File length  :  9728 Byte
-
-File length  :  9.5 KByte
-
-File length  :  0.00927 MByte
-
+CRC32 (HEX)  :  BC75C124
+MD5   (HEX)  :  3b20e2fab414e41004a408a6acfcd29b
+SHA 1 (HEX)  :  ec2ece3b5c934d510480c67fcb82d941c73ff32a
+SHA256(HEX)  :  1783797031d9530e78d52877c8e419058b27a859c7f182f64f6705a43b9806b6
+File length  :  10240 Byte
+File length  :  10 KByte
+File length  :  0.00976 MByte
 Freq. table  :  Use /f !
-
-Entropy      :  5.751391
-
-Approx. comp.:  6994 Byte
+Entropy      :  5.653565
+Approx. comp.:  7237 Byte
 
 
