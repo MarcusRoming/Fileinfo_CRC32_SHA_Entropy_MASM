@@ -136,7 +136,7 @@ NoDEP:
         jne  NoHelp
 Help:
         invoke StdOut,ADDR CR_LF
-        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.37",13,10
+        print "Info: Hash, CRC32 and Shannon Entropy calculator by Marcus Roming, Ver. 1.38",13,10
         print "Syntax: CRC32 filename.ext [/f] [/1] [/2] [/5]",13,10
         print " ",13,10
         print "/f for freq. table, /1 or /2 or /5 to copy SHA1, SHA256 or MD5 to clipboard!",13,10
@@ -393,6 +393,7 @@ jne  CycleCRC
             print "Error: Crypto-API initialization error! Line HC SHA256",13,10   
         .ENDIF
         invoke StdOut,ADDR HashBufferAscSHA256
+        invoke StdOut,ADDR CR_LF
         
         invoke CryptDestroyHash,hHashMD5       
         invoke CryptDestroyHash,hHashSHA1

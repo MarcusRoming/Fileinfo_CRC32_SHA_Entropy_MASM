@@ -5,6 +5,7 @@ First project on GitHub, use at your own risk!
 
 New:
   - Fixed bug that prevented hash creation on some systems due to user rights restrictions
+  - Fixed a minor bug with broader console windows (missing CR_LF)
   - Now with clipboard functionality
   - Now with three Hash functions: MD5, SHA1 and SHA256.
   - New memory allocation
@@ -47,15 +48,15 @@ To do:
   
 Tested under Win7-64 and Win7-32.         
 
-Hash values of current executable (V. 1.37), determined by the program itself of course:
+Hash values of current executable (V. 1.38), determined by the program itself of course:
 
-CRC32 (HEX)  :  BC75C124
+CRC32 (HEX)  :  170EE652
 
-MD5   (HEX)  :  3b20e2fab414e41004a408a6acfcd29b
+MD5   (HEX)  :  3ead4b325c6aef616da15fe723ac45fd
 
-SHA 1 (HEX)  :  ec2ece3b5c934d510480c67fcb82d941c73ff32a
+SHA 1 (HEX)  :  7f455425df14abc9a6094525f10a74fa403effc8
 
-SHA256(HEX)  :  1783797031d9530e78d52877c8e419058b27a859c7f182f64f6705a43b9806b6
+SHA256(HEX)  :  86297d6cf473080ec1b7b5a296e17b5ab945ae801c7f5a856654dc78f1fdf4a6
 
 File length  :  10240 Byte
 
@@ -65,8 +66,8 @@ File length  :  0.00976 MByte
 
 Freq. table  :  Use /f !
 
-Entropy      :  5.653565
+Entropy      :  5.65884
 
-Approx. comp.:  7237 Byte
+Approx. comp.:  7243 Byte
 
 
